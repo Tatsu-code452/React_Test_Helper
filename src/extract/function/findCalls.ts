@@ -1,8 +1,16 @@
 import ts from "typescript";
 import { Calls, ImportInfo } from "../../types/source";
 
+export const ignoreFunctions = new Set([
+    "useMemo",
+    "useCallback",
+    "useEffect",
+    "alert",
+]);
+
 export const findCalls = (node: ts.Node): Calls[] => {
     const calls: Calls[] = [];
+    const callsNames = new Set();
 
     const visit = (n: ts.Node) => {
         if (ts.isCallExpression(n)) {
@@ -10,19 +18,20 @@ export const findCalls = (node: ts.Node): Calls[] => {
 
             // obj.method()
             if (ts.isPropertyAccessExpression(expr)) {
-                calls.push({
-                    type: "method",
-                    object: expr.expression.getText(),
-                    method: expr.name.getText(),
-                });
+                const name = `${expr.expression.getText()}.${expr.name.getText()}`;
+                if (!callsNames.has(name)) {
+                    callsNames.add(name);
+                    calls.push({ type: "method", name });
+                }
             }
 
             // function()
             else if (ts.isIdentifier(expr)) {
-                calls.push({
-                    type: "function",
-                    name: expr.text,
-                });
+                const name = expr.text;
+                if (!ignoreFunctions.has(name) && !callsNames.has(name)) {
+                    callsNames.add(name);
+                    calls.push({ type: "function", name });
+                }
             }
         }
 

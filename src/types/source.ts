@@ -17,12 +17,18 @@ export type Calls = {
     module?: string;
 };
 
+export type DeclarationGroup = {
+    group: string,
+    properties: string[],
+}
+
 export type FunctionInfo = {
     name: string;
     params: string[];
     returnType?: string;
     isAsync: boolean;
     calls: Calls[];
+    declarationGroups?: DeclarationGroup[];
     returnAst?: any;
     returnKeys?: string[];
 };
