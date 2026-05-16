@@ -1,6 +1,6 @@
-import fileManager from "../helper/fileManager";
-import { Calls } from "../types/source";
-import { FileAnalysis } from "../types/types";
+import { Calls } from "../analyzer/types/source";
+import { FileAnalysis } from "../analyzer/types/types";
+import { createFileWithDir } from "../helper/fileManager";
 
 export type FunctionEdge = {
     fromId: string; // 関数名
@@ -107,7 +107,7 @@ export const buildFunctionGraph = (files: FileAnalysis[]) => {
     }
 
     result = toMermaid(edges)
-    fileManager.createFileWithDir("__output__\\__graph__", `function_dependency_graph.md`, result);
+    createFileWithDir("__output__\\__graph__", `function_dependency_graph.md`, result);
 
 };
 

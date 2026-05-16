@@ -1,4 +1,5 @@
 /node_modules
+/__input__
 /__output__
 /test_helper.code-workspace
 /.vscode/

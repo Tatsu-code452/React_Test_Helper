@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
-import type { FileAnalysis } from "../types/types";
 import { analyzeFile } from "./analyzeFile";
+import type { FileAnalysis } from "./types/types";
 
 export const analyzeFolder = (folder: string): FileAnalysis[] => {
     const files = walkDir(folder);

@@ -1,61 +1,53 @@
-import { analyzeFolder } from "./src/analyzer/analyzeFolder";
-import { buildFunctionGraph } from "./src/graph/buildDependencyGraph";
-import fileManager from "./src/helper/fileManager";
+import { dirname } from "path";
+import { fileURLToPath } from "url";
+import { commands } from "./src/cli/commands";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const printUsage = () => {
     console.log(`
 Usage:
-  npx ts-node analyze.ts <folder> [option]
+  npx tsx analyze.ts <command> <args...>
 
 Options:
-  graph   Generate function dependency graph
-  json    Output analysis result as JSON
-  help    Show this help
+  json                  Output analysis result as JSON
+  graph                 Generate function dependency graph
+  generateIntegrationTest  Generate integration test from state machine
+  generateDslTest       Generate DSL-based test suite
+  all                   Run all analysis
+  help                  Show this help
 `);
 };
 
-/** CLI 実行 */
-if (require.main === module) {
-    const target = process.argv[2];
-    const option = process.argv[3];
+export const main = () => {
+    const command = process.argv[2];
+    const args = process.argv.slice(3);
 
-    if (!target || option === "help") {
+    if (!command || command === "help") {
         printUsage();
         process.exit(0);
     }
 
-    try {
+    const fn = commands[command];
 
-        const result = analyzeFolder(target);
-
-        switch (option) {
-            case "json":
-                result.forEach(v =>
-                    fileManager.createFileWithDir("__output__\\analyze", `${v.meta.fileName}.json`, JSON.stringify(v, null, 2)))
-                break;
-
-            case "graph":
-                buildFunctionGraph(result);
-                break;
-
-            case "all":
-                result.forEach(v =>
-                    fileManager.createFileWithDir("__output__\\analyze", `${v.meta.fileName}.json`, JSON.stringify(v, null, 2)))
-                buildFunctionGraph(result);
-                break;
-
-            case undefined:
-                console.log("analyze success");
-                // 何もしない（解析だけ）
-                break;
-
-            default:
-                console.error(`Unknown option: ${option}`);
-                printUsage();
-                process.exit(1);
-        }
-    } catch (error) {
-        console.error(`analyze faild:`);
-        console.error(error);
+    if (!fn) {
+        console.error(`Unknown command: ${command}`);
+        printUsage();
+        process.exit(1);
     }
+
+    try {
+        fn(...args);
+    } catch (error) {
+        console.error("analyze failed:");
+        if (error instanceof Error) {
+            console.error(error.message);
+            console.error(error.stack);
+        }
+    }
+};
+
+if (process.argv[1] === __filename) {
+    main();
 }

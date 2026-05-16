@@ -1,7 +1,7 @@
 import path from "path";
-import { extractMockInfo } from "../extract/mock/extractMockInfo";
+import { extractMockInfo } from "../analyzer/extract/mock/extractMockInfo";
+import type { FileAnalysis } from "../analyzer/types/types";
 import fileManager from "../helper/fileManager";
-import type { FileAnalysis } from "../types/types";
 import apiTemplate from "./template/apiTemplate";
 import defaultTemplate from "./template/defaultTemplate";
 import hookTemplate from "./template/hookTemplate";
