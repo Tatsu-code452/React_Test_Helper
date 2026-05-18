@@ -1,15 +1,16 @@
-import { Assertion } from "../../model";
+import { Assertion, AssertionKey, AssertionKeys } from "../../model";
+import { expectDisabled, expectEnabled, expectExists, expectNotExists, expectNotValue, expectValue, testWrapper } from "../../utils/testWrapper";
+import { isTargetKey } from "../../utils/utils";
 
 export const generateAssertFunction = (
     funcName: string,
     expects: Assertion[]
 ): string => {
     const lines = expects.map((e) => {
-        const handler = handlers[e.type] as Handler<Extract<Assertion, { type: typeof e.type }>>;
-        if (!handler) {
-            throw new Error(`Unknown assertion type: ${e.type}`);
+        if (isTargetKey<AssertionKey>(e.type, AssertionKeys)) {
+            const handler = handlers[e.type];
+            return handler(e as any);
         }
-        return handler(e);
     });
 
     return `
@@ -19,45 +20,48 @@ export const ${funcName} = () => {
   `.trim();
 };
 
-type Handler<T extends Assertion> = (e: T) => string;
+type AssertionParam<K extends AssertionKey> = Extract<Assertion, { type: K }>;
+type AssertionMap = {
+    [K in AssertionKey]: AssertionParam<K>;
+};
+type HandlerMap = {
+    [K in AssertionKey]: (e: AssertionMap[K]) => string;
+};
 
-const handlers: {
-    [K in Assertion["type"]]: Handler<Extract<Assertion, { type: K }>>;
-} = {
+const handlers: HandlerMap = {
     row: (e) => {
-        if (e.value === "none") {
-            return `expect(screen.queryAllByRole("row")).toHaveLength(0);`;
-        }
-        return `expect(screen.queryAllByRole("row").length).toBeGreaterThan(0);`;
+        const expr = testWrapper.queryAllByRole("row");
+        return e.value === "none"
+            ? `expect(screen.${expr}).toHaveLength(0);`
+            : `expect(screen.${expr}.length).toBeGreaterThan(0);`;
     },
 
     text: (e) => {
-        return `expect(screen.getByText("${e.value}")).toBeInTheDocument();`;
+        const expr = testWrapper.getByText(e.value);
+        return expectExists(expr);
     },
 
     role: (e) => {
-        if (e.visible) {
-            return `expect(screen.getByRole("${e.name ?? "dialog"}")).toBeInTheDocument();`;
-        }
-        return `expect(screen.queryByRole("${e.name ?? "dialog"}")).toBeNull();`;
+        const expr = testWrapper.getByRole("dialog");
+        return e.visible ? expectExists(expr) : expectNotExists(expr);
     },
 
     button: (e) => {
-        const method = e.enabled ? "toBeEnabled" : "toBeDisabled";
-        return `expect(screen.getByRole("button", { name: "${e.name}" })).${method}();`;
+        const expr = testWrapper.getByRole("button", e.name);
+        return e.enabled ? expectEnabled(expr) : expectDisabled(expr);
     },
 
     input: (e) => {
-        if (e.value === "empty") {
-            return `expect(screen.getByLabelText("${e.name}")).toHaveValue("");`;
-        }
-        return `expect(screen.getByLabelText("${e.name}")).not.toHaveValue("");`;
+        const expr = testWrapper.getByLabelText(e.name);
+        return e.value === "empty"
+            ? expectValue(expr, "")
+            : expectNotValue(expr, "");
     },
 
     select: (e) => {
-        if (e.value === "empty") {
-            return `expect(screen.getByLabelText("${e.name}")).toHaveValue("");`;
-        }
-        return `expect(screen.getByLabelText("${e.name}")).not.toHaveValue("");`;
+        const expr = testWrapper.getByLabelText(e.name);
+        return e.value === "empty"
+            ? expectValue(expr, "")
+            : expectNotValue(expr, "");
     },
 };

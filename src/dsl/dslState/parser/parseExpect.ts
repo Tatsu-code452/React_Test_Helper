@@ -1,8 +1,12 @@
-import { Expect } from "../../model";
+import { Domain, DomainKeys, Expect } from "../../model";
+import { isTargetKey, sliceCols, toSplitCols } from "../../utils/utils";
 
 export const parseExpect = (dsl: string): Expect | undefined => {
-    const parts = dsl.split(":");
-    if (parts.length < 2) return undefined;
-    const [domain, state] = parts.slice(0, 2) as [Expect["domain"], Expect["state"]];
+    const parts = sliceCols(toSplitCols(dsl, ":"), 2);
+    if (!parts) return undefined;
+
+    const [domain, state] = parts;
+    if (!isTargetKey<Domain>(domain, DomainKeys) || !state) return undefined;
+
     return { domain, state };
 };

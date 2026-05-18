@@ -1,5 +1,14 @@
 import { Assertion, AssertionValue } from "../../model";
-import { toSplitCols } from "../../utils/utils";
+import { isTargetKey, toSplitCols } from "../../utils/utils";
+
+const KeysWithName = ["input", "select", "button", "role"] as const;
+const KeysWithoutName = ["button", "row", "text", "role"] as const;
+type KeysWithNameType = typeof KeysWithName[number];
+type KeysWithoutNameType = typeof KeysWithoutName[number];
+type ConvWithName = { [K in KeysWithNameType]:
+    (p: { name: string; value: unknown }) => Assertion };
+type ConvWithoutName = { [K in KeysWithoutNameType]:
+    (p: { value: unknown }) => Assertion };
 
 export const parseAssertion = (text: string): Assertion[] => {
     const parts = toSplitCols(text, ",");
@@ -8,26 +17,22 @@ export const parseAssertion = (text: string): Assertion[] => {
         const cols = toSplitCols(exp, ":");
 
         if (cols.length === 2) {
-            const [type, value] = cols as [KeysWithoutName, string];
-            return toAssertionWithoutName[type]({ value } as any);
+            const [type, value] = cols;
+            if (isTargetKey<KeysWithoutNameType>(type, KeysWithoutName))
+                return toAssertionWithoutName[type]({ value });
         }
 
         if (cols.length === 3) {
-            const [type, name, value] = cols as [KeysWithName, string, string];
-            return toAssertionWithName[type]({ name, value } as any);
+            const [type, name, value] = cols;
+            if (isTargetKey<KeysWithNameType>(type, KeysWithName))
+                return toAssertionWithName[type]({ name: name || "", value: value });
         }
 
         throw new Error(`Invalid expect format: ${exp}`);
     });
 };
 
-type KeysWithName = "input" | "select" | "button" | "role";
-type KeysWithoutName = "button" | "row" | "text" | "role";
-
-type ConvWithName = (p: { name: string; value: unknown }) => Assertion;
-type ConvWithoutName = (p: { value: unknown }) => Assertion;
-
-const toAssertionWithName: { [K in KeysWithName]: ConvWithName } = {
+const toAssertionWithName: ConvWithName = {
     input: (p) => ({
         type: "input",
         name: p.name,
@@ -48,11 +53,11 @@ const toAssertionWithName: { [K in KeysWithName]: ConvWithName } = {
     role: (p) => ({
         type: "role",
         name: "dialog",
-        visible: true,
+        visible: p.value !== "none",
     }),
 };
 
-const toAssertionWithoutName: { [K in KeysWithoutName]: ConvWithoutName } = {
+const toAssertionWithoutName: ConvWithoutName = {
     button: (p) => ({
         type: "button",
         name: p.value as AssertionValue<"button">["name"],
